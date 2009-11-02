@@ -1,0 +1,3 @@
+[submodule "joo"]
+	path = joo
+	url = git://github.com/ion1/joo.git

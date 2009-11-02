@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+cd "$(dirname "$0")"
+
+erl -noinput -eval '
+  ok = systools:make_script("camera_control",
+                            [{path, ["../../lib/*/ebin"]},
+                             {variables, [{"MYROOT", "../.."}]}]),
+  halt().
+'
+
+# vim:set et sw=2 sts=2:

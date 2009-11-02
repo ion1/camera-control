@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+cd "$(dirname "$0")"
+
+noinput="-noinput"
+
+if [ "$1" = "-i" ]; then
+  noinput=""
+fi
+
+erl $noinput -boot camera_control -boot_var MYROOT ../.. \
+    -config "$HOME"/.config/camera-control/camera-control.config
+
+# vim:set et sw=2 sts=2:

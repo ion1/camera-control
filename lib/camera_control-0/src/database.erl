@@ -248,23 +248,30 @@ table_name (Table) ->
   Name.
 
 action_lookup_maybe_unref (Table, Id, Unref) ->
+  action_lookup_maybe_unref (Table, Id, Unref, []).
+
+action_lookup_maybe_unref (Table, Id, Unref, ParentRefs) ->
+  NewParentRefs = [Id|ParentRefs],
+
   case ets:lookup (Table, Id) of
     [Entry] ->
-      error_logger:info_msg ("Action: ~p: ~p", [Id, Entry#action.action]),
-
       case Entry#action.action of
-        {ref, NewId} ->
-          if
-            Unref ->
-              action_lookup_maybe_unref (Table, NewId, Unref);
-            true ->
-              {ok, Entry} end;
+        {ref, NewId} when Unref ->
+          case lists:member (NewId, NewParentRefs) of
+            false ->
+              action_lookup_maybe_unref (Table, NewId, Unref, NewParentRefs);
+            _ ->
+              error_logger:info_msg ("Infinite loop: ~p",
+                                     [[NewId|NewParentRefs]]),
+              {error, infinite_loop} end;
 
         _ ->
+          error_logger:info_msg ("Action: ~p: ~p",
+                                 [NewParentRefs, Entry#action.action]),
           {ok, Entry} end;
 
     _ ->
-      error_logger:info_msg ("Action: ~p: Not found", [Id]),
+      error_logger:info_msg ("Action: ~p: Not found", [NewParentRefs]),
       {error, not_found} end.
 
 ssp_camera_slot_id (Addr, Slot) ->

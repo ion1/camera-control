@@ -73,17 +73,15 @@ code_change (_OldVsn, State, _Extra) ->
 % Note that the hardware reports invalid data if multiple buttons are pressed
 % simultaneously.
 read_input (State) ->
-  YBits = read_raw_input (0, State),
-  XBits = read_raw_input (4, State),
-
+  <<XBits:16/bits, YBits:16/bits>> = read_raw_input (State),
   Table = match_axis (YBits, XBits),
   {ok, pressed_buttons (Table)}.
 
-read_raw_input (Offset, State) ->
-  read_raw_input (Offset, 0, <<>>, State).
+read_raw_input (State) ->
+  read_raw_input (0, <<>>, State).
 
-read_raw_input (Offset, N, Bits, #state{port=Port} = State) when N < 4 ->
-  ok = port:send (Port, {write_data, <<(Offset+N), 2#1111>>}),
+read_raw_input (N, Bits, #state{port=Port} = State) when N < 8 ->
+  ok = port:send (Port, {write_data, <<N, 2#1111>>}),
   ok = timer:sleep (1),
 
   {ok, <<StatusInv>>} = port:send (Port, read_status),
@@ -91,9 +89,9 @@ read_raw_input (Offset, N, Bits, #state{port=Port} = State) when N < 4 ->
 
   <<NewBits:4, _:4>> = <<Status>>,
 
-  read_raw_input (Offset, N+1, <<NewBits:4, Bits/bits>>, State);
+  read_raw_input (N+1, <<NewBits:4, Bits/bits>>, State);
 
-read_raw_input (_Offset, 4, Bits, _State) ->
+read_raw_input (_N, <<_:32>> = Bits, _State) ->
   Bits.
 
 match_axis (YBits, XBits) ->

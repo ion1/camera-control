@@ -50,7 +50,10 @@ init (dummy) ->
     % depends on database, channel_sup
     child (camera_control, '', [], worker),
 
-    % depends on control_board, camera_control
+    % depends on camera_control, database
+    child (input_handler_control_board, '', [], worker),
+
+    % depends on control_board, input_handler_control_board
     child (control_board_scanner, '', [], worker)],
 
   {ok, {{rest_for_one, 3, 10}, Children}}.

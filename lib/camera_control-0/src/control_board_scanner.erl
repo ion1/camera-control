@@ -114,10 +114,10 @@ code_change (_OldVsn, StateName, StateData, _Extra) ->
 
 notify_pressed (Button) ->
   error_logger:info_msg ("Press   ~p", [Button]),
-  ok = camera_control:pressed (Button).
+  ok = input_handler_control_board:pressed (Button).
 
 notify_released (Button) ->
   error_logger:info_msg ("Release ~p", [Button]),
-  ok = camera_control:released (Button).
+  ok = input_handler_control_board:released (Button).
 
 % vim:set et sw=2 sts=2:

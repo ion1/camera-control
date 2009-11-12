@@ -62,9 +62,10 @@ $(cc_path)/priv/serial_port_drv : $(cc_path)/src/serial_port_drv.o
 clean += $(cc_path)/priv/serial_port_drv
 
 $(cc_path)/ebin/%.beam : $(cc_path)/src/%.erl
-	erlc $(ERLC_FLAGS) -o $(dir $@) $<
+	mkdir -p $$(dirname $@)
+	erlc $(ERLC_FLAGS) -o $$(dirname $@) $<
 
-$(cc_rel).boot $(cc_rel).script : $(e_obj) $(cc_drivers)
+$(cc_rel).boot $(cc_rel).script : $(e_obj) $(cc_drivers) $(cc_rel).rel
 	$(release_path)/make_bootscript
 clean += $(cc_rel).boot $(cc_rel).script
 

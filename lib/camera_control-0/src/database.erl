@@ -282,12 +282,9 @@ action_lookup_maybe_unref (Table, Id, Unref, ParentRefs) ->
               {error, infinite_loop} end;
 
         _ ->
-          error_logger:info_msg ("Action: ~p: ~p",
-                                 [NewParentRefs, Entry#action.action]),
           {ok, Entry} end;
 
     _ ->
-      error_logger:info_msg ("Action: ~p: Not found", [NewParentRefs]),
       {error, not_found} end.
 
 ssp_camera_slot_id (Addr, Slot) ->

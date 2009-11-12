@@ -1,9 +1,9 @@
 [{camera_control,
-  [{channels, [{channel0, ssp_camera, [1, 0]},
-               {channel1, ssp_camera, [2, 1]},
-               {channel2, passthrough, [2]},
-               {channel3, passthrough, [3]},
-               {channel4, passthrough, [4]}]},
+  [{channels, [{channel_cam0, ssp_camera, [1, 0]},
+               {channel_cam1, ssp_camera, [2, 1]},
+               {channel_ext0, passthrough, [2]},
+               {channel_ext1, passthrough, [3]},
+               {channel_ext2, passthrough, [4]}]},
    {database_dir, "/home/user/.local/share/camera-control/database"}]}].
 
 % vim:set et sw=2 sts=2:

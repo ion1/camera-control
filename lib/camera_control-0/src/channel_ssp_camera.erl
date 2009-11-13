@@ -142,8 +142,11 @@ save (State) ->
   ssp_camera:preset_set (State#state.camera_addr, Slot),
 
   % A little notification of a successful save.
-  ssp_camera:ptz (State#state.camera_addr, {-7, 0, 0}),
-  timer:sleep (50),
+  lists:foreach (fun (_) ->
+      ssp_camera:ptz (State#state.camera_addr, {1, 0, 0}),
+      timer:sleep (?PTZ_TIMEOUT) end,
+    lists:seq (0, trunc (400/?PTZ_TIMEOUT))),
+  ssp_camera:ptz (State#state.camera_addr, {0, 0, 0}),
   ssp_camera:preset_goto (State#state.camera_addr, Slot),
 
   {ok, Slot}.

@@ -58,31 +58,33 @@ terminate (_Reason, _StateName, _StateData) ->
 
 
 idle ({pressed, Button}, State) ->
-  ActionId = if
+  {ActionId, NewLastButton} = if
     Button == State#state.last_button ->
-      "idle";
+      {"idle", false};
     true ->
-      button_id (Button) end,
+      {button_id (Button), Button} end,
+
+  NewState = State#state{last_button=false},
 
   case database:action_lookup (ActionId) of
     {ok, {load, _Channel, _Slot}=Action} ->
       ok = camera_control:activate (Action),
-      {next_state, idle, State#state{last_button=Button}};
+      {next_state, idle, NewState#state{last_button=NewLastButton}};
 
     {ok, {ptz, _Direction}=Action} ->
       ok = camera_control:activate (Action),
-      {next_state, ptzing, State};
+      {next_state, ptzing, NewState};
 
     {ok, save} ->
       error_logger:info_msg ("Please press the target button"),
-      {next_state, saving_0, State, ?SAVE_TIMEOUT};
+      {next_state, saving_0, NewState, ?SAVE_TIMEOUT};
 
     {ok, Action} ->
       ok = camera_control:activate (Action),
-      {next_state, idle, State};
+      {next_state, idle, NewState};
 
     _ ->
-      {next_state, idle, State} end;
+      {next_state, idle, NewState} end;
 
 idle ({released, _Button}, State) ->
   {next_state, idle, State}.

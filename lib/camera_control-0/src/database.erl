@@ -24,7 +24,7 @@
 -export ([start_link/0, dump/0, action_lookup/2, action_lookup/1,
           action_is_special/1, action_set/3, ssp_camera_init/1,
           ssp_camera_slot_free/2, ssp_camera_slot_is_allocated/2,
-          ssp_camera_slot_allocate/1]).
+          ssp_camera_slot_allocate/1, ssp_camera_slot_allocate/2]).
 
 %% gen_server callbacks
 -export ([init/1, terminate/2, handle_call/3, handle_cast/2, handle_info/2,
@@ -69,6 +69,9 @@ ssp_camera_slot_is_allocated (Addr, Slot) ->
 
 ssp_camera_slot_allocate (Addr) ->
   gen_server:call (?REGNAME, {ssp_camera_slot_allocate, Addr}).
+
+ssp_camera_slot_allocate (Addr, Slot) ->
+  gen_server:call (?REGNAME, {ssp_camera_slot_allocate, Addr, Slot}).
 
 
 %% gen_server callbacks
@@ -192,7 +195,20 @@ handle_call ({ssp_camera_slot_allocate, Addr}, _From, State) ->
     '$end_of_table' ->
       {error, no_free_slots} end,
 
-  {reply, Result, State}.
+  {reply, Result, State};
+
+handle_call ({ssp_camera_slot_allocate, Addr, Slot}, _From, State) ->
+  Table = State#state.ssp_camera_slots,
+  Id = ssp_camera_slot_id (Addr, Slot),
+
+  [Entry] = ets:lookup (Table, Id),
+  if
+    Entry#ssp_camera_slot.allocated ->
+      {error, already_allocated};
+    true ->
+      ets:insert (Table, Entry#ssp_camera_slot{allocated=true}),
+      ok = write_table (Table, State#state.dir),
+      {reply, ok, State} end.
 
 
 handle_cast (_Request, State) ->

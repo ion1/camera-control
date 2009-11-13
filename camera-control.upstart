@@ -1,0 +1,19 @@
+start on (filesystem and
+          tty-device-added KERNEL=ttyS0 and
+          ppdev-device-added KERNEL=parport0)
+stop on runlevel [06]
+
+respawn
+
+script
+  log=/var/log/camera-control.log
+
+  for n in $(seq 8 -1 1); do
+    mv -f "$log.$n" "$log.$(($n+1))" || :
+  done
+  mv -f "$log" "$log.1" || :
+
+  exec >"$log" 2>&1
+  exec su -c 'exec /home/user/src/camera-control/releases/0/run' user
+end script
+

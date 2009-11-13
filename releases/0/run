@@ -25,6 +25,8 @@ if [ "$1" = "-i" ]; then
   noinput=""
 fi
 
+export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}../../joo/joo"
+
 erl $noinput -boot camera_control -boot_var MYROOT ../.. \
     -config "$HOME"/.config/camera-control/camera-control.config
 

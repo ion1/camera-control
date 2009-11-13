@@ -141,7 +141,10 @@ save (State) ->
   {ok, Slot} = database:ssp_camera_slot_allocate (State#state.camera_addr),
   ssp_camera:preset_set (State#state.camera_addr, Slot),
 
-  % A little notification of a successful save.
+  % A little notification of a successful save. The cameras seem to ignore PTZ
+  % commands for a couple hundred milliseconds just after saving. 400 ms of
+  % sending a movement request seems to work quite nicely, taking into account
+  % that the first part of it doesn’t do anything.
   lists:foreach (fun (_) ->
       ssp_camera:ptz (State#state.camera_addr, {1, 0, 0}),
       timer:sleep (?PTZ_TIMEOUT) end,

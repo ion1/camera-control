@@ -56,6 +56,7 @@ idle ({free, _Slot}, _From, State) ->
   {reply, ok, idle, State};
 
 idle ({load, _Slot}, _From, State) ->
+  ok = control_board:select_video (State#state.channel_num),
   {reply, ok, idle, State};
 
 idle (save, _From, State) ->

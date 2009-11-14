@@ -66,7 +66,7 @@ idle ({pressed, Button}, State) ->
 
   NewState = State#state{last_button=false},
 
-  case database:action_lookup (ActionId) of
+  case db_actions:lookup (ActionId) of
     {ok, {load, _Channel, _Slot}=Action} ->
       ok = camera_control:activate (Action),
       {next_state, idle, NewState#state{last_button=NewLastButton}};
@@ -105,7 +105,7 @@ saving_0 (timeout, State) ->
 saving_0 ({pressed, Button}, State) ->
   ButtonId = button_id (Button),
 
-  case database:action_is_special (ButtonId) of
+  case db_actions:is_special (ButtonId) of
     false ->
       NewState = State#state{saving_id=ButtonId},
       error_logger:info_msg ("Please press save again"),
@@ -123,7 +123,7 @@ saving_1 (timeout, State) ->
   {next_state, idle, State#state{saving_id=false}};
 
 saving_1 ({pressed, Button}, State) ->
-  case database:action_lookup (button_id (Button)) of
+  case db_actions:lookup (button_id (Button)) of
     {ok, save} ->
       camera_control:save (State#state.saving_id);
     _ ->

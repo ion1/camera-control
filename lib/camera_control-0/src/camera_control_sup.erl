@@ -37,9 +37,9 @@ init (dummy) ->
   process_flag (trap_exit, true),
 
   Children = [
-    child (database, '', [], worker),
+    child (db_actions, '', [], worker),
 
-    % depends on database
+    % depends on db_actions
     child (channel_sup, '', [], supervisor),
 
     child (ssp, '', ["/dev/ttyS0"], worker),
@@ -47,10 +47,10 @@ init (dummy) ->
     % depends on channel_sup
     child (control_board, '', ["/dev/parport0"], worker),
 
-    % depends on database, channel_sup
+    % depends on db_actions, channel_sup
     child (camera_control, '', [], worker),
 
-    % depends on camera_control, database
+    % depends on camera_control, db_actions
     child (input_handler_control_board, '', [], worker),
 
     % depends on control_board, input_handler_control_board

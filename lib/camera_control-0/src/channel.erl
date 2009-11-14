@@ -16,7 +16,7 @@
 
 -module (channel).
 
--export ([activate/1, ptz/2, free/2, load/2, save/1]).
+-export ([activate/1, ptz/2, free/2, load/2, save/2]).
 
 activate (Id) ->
   error_logger:info_msg ("~p: activate", [Id]),
@@ -38,9 +38,9 @@ load (Id, ChannelSlot) ->
   error_logger:info_msg ("~p: load ~p", [Id, ChannelSlot]),
   gen_fsm:sync_send_event (Id, {load, ChannelSlot}).
 
-save (Id) ->
-  error_logger:info_msg ("~p: save", [Id]),
-  case gen_fsm:sync_send_event (Id, save) of
+save (Id, ActionId) ->
+  error_logger:info_msg ("~p: save ~p", [Id, ActionId]),
+  case gen_fsm:sync_send_event (Id, {save, ActionId}) of
     {ok, ChannelSlot} ->
       {ok, Id, ChannelSlot};
     {error, Message} ->

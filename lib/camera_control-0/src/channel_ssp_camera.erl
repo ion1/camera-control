@@ -27,24 +27,26 @@
 -export ([init/1, terminate/3, idle/3, ptzing/2, ptzing/3, handle_event/3,
          handle_sync_event/4, handle_info/3, code_change/4]).
 
+%% includes
+-include ("lazy.hrl").
+-include ("ssp_constants.hrl").
+
 %% State
--record (state, {camera_addr, channel_num, ptz=stop}).
+-record (state, {id, camera_addr, channel_num, ptz=stop}).
 
 
 %% API
 
 start_link (Id, CameraAddr, ChannelNum) ->
-  gen_fsm:start_link ({local, Id}, ?MODULE, {CameraAddr, ChannelNum}, []).
+  gen_fsm:start_link ({local, Id}, ?MODULE, {Id, CameraAddr, ChannelNum}, []).
 
 
 %% gen_fsm callbacks
 
-init ({CameraAddr, ChannelNum}) ->
+init ({Id, CameraAddr, ChannelNum}) ->
   process_flag (trap_exit, true),
 
-  ok = database:ssp_camera_init (CameraAddr),
-
-  {ok, idle, #state{camera_addr=CameraAddr, channel_num=ChannelNum}}.
+  {ok, idle, #state{id=Id, camera_addr=CameraAddr, channel_num=ChannelNum}}.
 
 terminate (_Reason, _StateName, _StateData) ->
   ok.
@@ -68,8 +70,8 @@ idle ({load, Slot}, _From, State) ->
   ok = load (Slot, State),
   {reply, ok, idle, State};
 
-idle (save, _From, State) ->
-  {ok, Slot} = save (State),
+idle ({save, ActionId}, _From, State) ->
+  {ok, Slot} = save (ActionId, State),
   {reply, {ok, Slot}, idle, State}.
 
 
@@ -122,24 +124,35 @@ ptz (State) ->
   ptz (State#state.ptz, State),
   State.
 
-free (Slot, State) ->
-  ok = database:ssp_camera_slot_free (State#state.camera_addr, Slot),
+free (_Slot, _State) ->
+  % Nothing needs to be sent to the camera.
   ok.
 
 load (Slot, State) ->
-  Allocated = database:ssp_camera_slot_is_allocated (State#state.camera_addr,
-                                                     Slot),
-  if
-    Allocated ->
-      ssp_camera:preset_goto (State#state.camera_addr, Slot);
-    true ->
-      void end,
-
+  ssp_camera:preset_goto (State#state.camera_addr, Slot),
   ok.
 
-save (State) ->
-  {ok, Slot} = database:ssp_camera_slot_allocate (State#state.camera_addr),
-  ssp_camera:preset_set (State#state.camera_addr, Slot),
+save (ActionId, #state{id=Id} = State) ->
+  FreeSlot = fun (_Slot) -> ok end,
+
+  PickSlot = fun (TakenSlots, FreedSlot) ->
+    case FreedSlot of
+      false ->
+        AllSlots = ordsets:from_list (lists:seq (?SSP_PRESET_MIN,
+                                                 ?SSP_PRESET_MAX)),
+        AvailSlots = ordsets:subtract (AllSlots, ?FORCE (TakenSlots)),
+        case AvailSlots of
+          [Slot | _] ->
+            {ok, Slot};
+          _ ->
+            {error, not_available} end;
+      Slot ->
+        {ok, Slot} end end,
+
+  SaveSlot = fun (Slot) ->
+    ok = ssp_camera:preset_set (State#state.camera_addr, Slot) end,
+
+  {ok, Slot} = db_actions:set (ActionId, Id, FreeSlot, PickSlot, SaveSlot),
 
   % A little notification of a successful save. The cameras seem to ignore PTZ
   % commands for a couple hundred milliseconds just after saving. 400 ms of

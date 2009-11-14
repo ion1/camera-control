@@ -14,27 +14,7 @@
 % ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 % OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-{application,
- camera_control,
- [{description, "Camera Control"},
-  {vsn, "0"},
-  {modules, [camera_control,
-             camera_control_app,
-             camera_control_sup,
-             channel_sup,
-             control_board,
-             control_board_scanner,
-             db,
-             db_actions,
-             ssp]},
-  {registered, [camera_control,
-                camera_control_sup,
-                channel_sup,
-                control_board,
-                control_board_scanner,
-                db_actions,
-                ssp]},
-  {applications, [kernel, stdlib, sasl]},
-  {mod, {camera_control_app, []}}]}.
+-define (DELAY (Expr), fun () -> Expr end).
+-define (FORCE (Fun), Fun ()).
 
 % vim:set et sw=2 sts=2:

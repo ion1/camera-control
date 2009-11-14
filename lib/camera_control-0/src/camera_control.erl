@@ -39,8 +39,8 @@ start_link () ->
 activate (Action) ->
   gen_server:call (?REGNAME, {activate, Action}).
 
-save (Id) ->
-  gen_server:call (?REGNAME, {save, Id}).
+save (ActionId) ->
+  gen_server:call (?REGNAME, {save, ActionId}).
 
 
 %% gen_server callbacks
@@ -51,7 +51,7 @@ init (dummy) ->
   InitialState = #state{},
 
   % Load idle slot.
-  State = case database:action_lookup ("idle") of
+  State = case db_actions:lookup ("idle") of
     {ok, {load, Channel, Slot}} ->
       {ok, NewState} = activate_slot (Channel, Slot, InitialState),
       NewState;
@@ -66,7 +66,7 @@ init (dummy) ->
   lists:foreach (fun ({Channel, _, _}) ->
       if
         State#state.active_channel =/= Channel ->
-          case database:action_lookup ("idle-" ++ atom_to_list (Channel)) of
+          case db_actions:lookup ("idle-" ++ atom_to_list (Channel)) of
             {ok, {load, Channel, IdleSlot}} ->
               ok = channel:load (Channel, IdleSlot);
             _ ->
@@ -97,9 +97,8 @@ handle_call ({activate, {ptz, Direction}}, _From, State) ->
   {reply, ok, State};
 
 
-handle_call ({save, Id}, _From, State) ->
-  save (Id, State),
-  {reply, ok, State}.
+handle_call ({save, ActionId}, _From, State) ->
+  {reply, save (ActionId, State), State}.
 
 
 handle_cast (_Request, State) ->
@@ -123,7 +122,7 @@ activate_slot (Channel, Slot, State) ->
     OldChannel when is_atom (OldChannel) andalso OldChannel =/= Channel ->
       Id = "idle-" ++ atom_to_list (OldChannel),
 
-      case database:action_lookup (Id) of
+      case db_actions:lookup (Id) of
         {ok, {load, OldChannel, IdleSlot}} ->
           ok = channel:load (OldChannel, IdleSlot);
         _ ->
@@ -146,25 +145,12 @@ activate_channel (ChannelNum, State) ->
     true ->
       {error, no_such_channel} end.
 
-free (Id, _State) ->
-  case database:action_lookup (Id, false) of
-    {ok, {load, Channel, Slot}} ->
-      channel:free (Channel, Slot);
-    _ ->
-      void end,
-
-  ok.
-
-save (Id, #state{active_channel=Channel} = State) ->
-  case database:action_is_special (Id) of
+save (ActionId, #state{active_channel=Channel} = _State) ->
+  case db_actions:is_special (ActionId) of
     true ->
+      error_logger:info_msg ("Not saving, action is special"),
       {error, action_is_special};
-
     _ ->
-      free (Id, State),
-
-      {ok, Channel, Slot} = channel:save (Channel),
-      database:action_set (Id, {load, Channel, Slot}, false),
-      ok end.
+      channel:save (Channel, ActionId) end.
 
 % vim:set et sw=2 sts=2:

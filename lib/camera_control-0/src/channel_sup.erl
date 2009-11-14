@@ -44,6 +44,6 @@ init (dummy) ->
        permanent, 1000, worker, [RealModule]} end,
     Channels),
 
-  {ok, {{one_for_all, 1, 5}, Children}}.
+  {ok, {{one_for_one, 3, 10}, Children}}.
 
 % vim:set et sw=2 sts=2:

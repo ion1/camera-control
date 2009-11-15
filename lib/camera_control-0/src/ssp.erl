@@ -79,10 +79,10 @@ handle_call ({send, AddrCat, AddrDev, DataPayload}, _From, State) ->
   % Delay a bit more before the handshake to make sure the bus is free.
   BusFreeForSureAt = State#state.sent_time + ?SSP_DELAY_RELEASE_BUS,
 
-  FirstCmd = State#state.sent_time == 0,
+  FirstCmd = State#state.sent_time =:= 0,
   BusFree  = BusFreeAt =< Now,
-  SameAddr = (AddrCat == State#state.sent_addr_cat) andalso
-             (AddrDev == State#state.sent_addr_dev),
+  SameAddr = (AddrCat =:= State#state.sent_addr_cat) andalso
+             (AddrDev =:= State#state.sent_addr_dev),
 
   NeedHandshake = if
     FirstCmd orelse BusFree orelse (not SameAddr) ->

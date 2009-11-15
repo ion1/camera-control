@@ -59,7 +59,7 @@ terminate (_Reason, _StateName, _StateData) ->
 
 idle ({pressed, Button}, State) ->
   {ActionId, NewLastButton} = if
-    Button == State#state.last_button ->
+    Button =:= State#state.last_button ->
       {"idle", false};
     true ->
       {button_id (Button), Button} end,

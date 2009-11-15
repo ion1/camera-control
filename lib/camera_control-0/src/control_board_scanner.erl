@@ -65,7 +65,7 @@ main (timeout, State) ->
 
     [Button] ->
       if
-        PrevButton == false ->
+        PrevButton =:= false ->
           ok = notify_pressed (Button),
           State#state{button=Button};
 

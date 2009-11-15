@@ -90,8 +90,7 @@ code_change (_OldVsn, State, _Extra) ->
 % simultaneously.
 read_input (State) ->
   <<XBits:16/bits, YBits:16/bits>> = read_raw_input (State),
-  Table = match_axis (YBits, XBits),
-  {ok, pressed_buttons (Table)}.
+  {ok, match_axis (YBits, XBits)}.
 
 read_raw_input (State) ->
   read_raw_input (0, <<>>, State).
@@ -111,35 +110,15 @@ read_raw_input (_N, <<_:32>> = Bits, _State) ->
   Bits.
 
 match_axis (YBits, XBits) ->
-  lists:map  (fun (Y) ->
-      YActive = nth_bit (Y, YBits) =/= 0,
-      lists:map  (fun (X) ->
-          XActive = nth_bit (X, XBits) =/= 0,
-          YActive andalso XActive end,
-        lists:seq (0, 15)) end,
-    lists:seq (0, 15)).
+  [{Y, X} || Y <- lists:seq (0, 15),
+             nth_bit (Y, YBits) =/= 0,
+             X <- lists:seq (0, 15),
+             nth_bit (X, XBits) =/= 0].
 
 nth_bit (N, Bits) ->
   NBefore = bit_size (Bits)-1-N,
   <<_:NBefore, Bit:1, _:N>> = Bits,
   Bit.
-
-pressed_buttons ([Row|RowsTail]) ->
-  pressed_buttons (RowsTail, Row, 0, 0, []).
-
-pressed_buttons (RowsTail, [Col|ColsTail], Y, X, Result) ->
-  NewResult = if
-    Col ->
-      Result ++ [{Y, X}];
-    true ->
-      Result end,
-  pressed_buttons (RowsTail, ColsTail, Y, X+1, NewResult);
-
-pressed_buttons ([Row|RowsTail], [], Y, _X, Result) ->
-  pressed_buttons (RowsTail, Row, Y+1, 0, Result);
-
-pressed_buttons ([], [], _Y, _X, Result) ->
-  Result.
 
 
 %% Video selection

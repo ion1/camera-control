@@ -37,7 +37,7 @@ read (Name, Dir) ->
   if
     not Exists ->
       ok = write (Table, Dir);
-    true ->
+    Exists ->
       ok end,
 
   {ok, Table}.

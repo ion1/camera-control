@@ -60,7 +60,7 @@ main (timeout, State) ->
         PrevButton =/= false ->
           ok = notify_released (PrevButton),
           State#state{button=false};
-        true ->
+        PrevButton =:= false ->
           State end;
 
     [Button] ->
@@ -74,7 +74,7 @@ main (timeout, State) ->
           ok = notify_pressed (Button),
           State#state{button=Button};
 
-        true ->
+        PrevButton =:= Button ->
           State end;
 
     Buttons ->
@@ -89,9 +89,9 @@ main (timeout, State) ->
             ProbablyReleased ->
               ok = notify_released (PrevButton),
               State#state{button=false};
-            true ->
+            not ProbablyReleased ->
               State end;
-        true ->
+        PrevButton =:= false ->
           State end end,
 
   {next_state, main, NewState, ?SCAN_PERIOD}.

@@ -71,7 +71,7 @@ init (dummy) ->
               ok = channel:load (Channel, IdleSlot);
             _ ->
               ok end;
-        true ->
+        State#state.active_channel =:= Channel ->
           ok end end,
     Channels),
 
@@ -142,7 +142,7 @@ activate_channel (ChannelNum, State) ->
       {Channel, _, _} = lists:nth (ChannelNum+1, Channels),
       ok = channel:activate (Channel),
       {ok, State#state{active_channel=Channel}};
-    true ->
+    ChannelNum >= ChannelsLength ->
       {error, no_such_channel} end.
 
 save (ActionId, #state{active_channel=Channel} = _State) ->

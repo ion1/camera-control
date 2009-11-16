@@ -61,7 +61,7 @@ idle ({pressed, Button}, State) ->
   {ActionId, NewLastButton} = if
     Button =:= State#state.last_button ->
       {"idle", false};
-    true ->
+    Button =/= State#state.last_button ->
       {button_id (Button), Button} end,
 
   NewState = State#state{last_button=false},

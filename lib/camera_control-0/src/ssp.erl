@@ -84,28 +84,19 @@ handle_call ({send, AddrCat, AddrDev, DataPayload}, _From, State) ->
   SameAddr = (AddrCat =:= State#state.sent_addr_cat) andalso
              (AddrDev =:= State#state.sent_addr_dev),
 
-  NeedHandshake = if
-    FirstCmd orelse BusFree orelse (not SameAddr) ->
-      true;
-    true ->
-      false end,
-
-  DataInitial = if
-    NeedHandshake andalso (not FirstCmd) ->
-      [{sleep_until, BusFreeForSureAt}];
-    true ->
-      [] end,
+  NeedHandshake = FirstCmd orelse BusFree orelse (not SameAddr),
 
   DataHandshake = if
     NeedHandshake ->
-      [<<?SSP_ADDR_CAT_CONTROLLER, (State#state.my_addr),
+      [{sleep_until, BusFreeForSureAt},
+       <<?SSP_ADDR_CAT_CONTROLLER, (State#state.my_addr),
          AddrCat, AddrDev,
          ?SSP_TRANSMISSION_START>>,
        delay];
-    true ->
+    not NeedHandshake ->
       [] end,
 
-  Data = DataInitial ++ DataHandshake ++ DataPayload,
+  Data = DataHandshake ++ DataPayload,
 
   error_logger:info_msg ("SSP: Send: ~p", [Data]),
 
@@ -158,7 +149,7 @@ sleep_until (Time) ->
   if
     MilliS > 0 ->
       ok = timer:sleep (MilliS);
-    true ->
+    MilliS =< 0 ->
       ok end.
 
 % vim:set et sw=2 sts=2:

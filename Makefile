@@ -19,6 +19,7 @@ LDFLAGS := -Wl,--as-needed -Ljoo/joo
 LDLIBS  := -ljoo
 
 ERLC_FLAGS := -W +warn_unused_vars +warn_unused_import
+ERLC_FLAGS += +debug_info
 
 cc_path := lib/camera_control-0
 

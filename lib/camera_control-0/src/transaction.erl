@@ -14,32 +14,30 @@
 % ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 % OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
--module (channel).
+-module (transaction).
 
--export ([activate/1, ptz/2, free/2, load/2, save/2]).
+-export ([run/2]).
 
-activate (Id) ->
-  error_logger:info_msg ("~p: activate", [Id]),
-  gen_fsm:sync_send_event (Id, activate).
+run (State, Funs) ->
+  run (State, Funs, []).
 
-ptz (Id, stop) ->
-  error_logger:info_msg ("~p: ptz stop", [Id]),
-  gen_fsm:sync_send_event (Id, {ptz, stop});
+run (State, [Fun|Funs], Rollbacks) ->
+  case (catch Fun (State)) of
+    {ok, NewState} ->
+      run (NewState, Funs, Rollbacks);
+    {ok, NewState, Rollback} ->
+      run (NewState, Funs, [Rollback|Rollbacks]);
+    Error ->
+      rollback (State, Error, Rollbacks) end;
 
-ptz (Id, {P, T, Z}) ->
-  error_logger:info_msg ("~p: ptz ~p", [Id, {P, T, Z}]),
-  gen_fsm:sync_send_event (Id, {ptz, {P, T, Z}}).
+run (_State, [], _Rollbacks) ->
+  ok.
 
-load (Id, ChannelSlot) ->
-  error_logger:info_msg ("~p: load ~p", [Id, ChannelSlot]),
-  gen_fsm:sync_send_event (Id, {load, ChannelSlot}).
+rollback (State, Error, [Fun|Funs]) ->
+  Fun (),
+  rollback (State, Error, Funs);
 
-free (Id, ChannelSlot) ->
-  error_logger:info_msg ("~p: free ~p", [Id, ChannelSlot]),
-  gen_fsm:sync_send_event (Id, {free, ChannelSlot}).
-
-save (Id, TakenSlotsPromise) ->
-  error_logger:info_msg ("~p: save", [Id]),
-  gen_fsm:sync_send_event (Id, {save, TakenSlotsPromise}).
+rollback (_State, Error, []) ->
+  throw (Error).
 
 % vim:set et sw=2 sts=2:

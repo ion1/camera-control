@@ -21,8 +21,8 @@
 -behaviour (gen_server).
 
 %% API
--export ([start_link/0, dump/0, lookup/2, lookup/1, is_special/1, set/5,
-          set_raw/3]).
+-export ([start_link/0, dump/0, lookup/2, lookup/1, is_special/1, set/3,
+          taken_slots/1]).
 
 %% gen_server callbacks
 -export ([init/1, terminate/2, handle_call/3, handle_cast/2, handle_info/2,
@@ -30,7 +30,6 @@
 
 %% includes
 -include ("db_actions.hrl").
--include ("lazy.hrl").
 
 %% State
 -record (state, {dir, table}).
@@ -53,11 +52,11 @@ lookup (Id) ->
 is_special (Id) ->
   gen_server:call (?REGNAME, {is_special, Id}).
 
-set (Id, Channel, FreeSlot, PickSlot, SaveSlot) ->
-  gen_server:call (?REGNAME, {set, Id, Channel, FreeSlot, PickSlot, SaveSlot}).
+set (Id, Action, Special) ->
+  gen_server:call (?REGNAME, {set, Id, Action, Special}).
 
-set_raw (Id, Action, Special) ->
-  gen_server:call (?REGNAME, {set_raw, Id, Action, Special}).
+taken_slots (Channel) ->
+  gen_server:call (?REGNAME, {taken_slots, Channel}).
 
 
 
@@ -99,52 +98,7 @@ handle_call ({is_special, Id}, _From, #state{table=Table} = State) ->
 
   {reply, Result, State};
 
-handle_call ({set, Id, Channel, FreeSlot, PickSlot, SaveSlot}, _From, State) ->
-  Table = State#state.table,
-
-  OldEntry = case ets:lookup (Table, Id) of
-    [Entry] ->
-      Entry;
-    _ ->
-      false end,
-
-  Res = case OldEntry of
-    #action{special=true} ->
-      {error, action_is_special};
-
-    _ ->
-      % Free the old entry.
-      OldSlot = case OldEntry of
-        #action{action={load, Channel, OSlot}} ->
-          ok = FreeSlot (OSlot),
-          OSlot;
-        #action{action={load, OtherChannel, OSlot}} ->
-          ok = channel:free (OtherChannel, OSlot),
-          false;
-        _ ->
-          false end,
-
-      TakenSlots = ?DELAY (ets:foldl (fun (Entry, TSlots) ->
-          case Entry of
-            #action{action={load, Channel, TSlot}} when TSlot =/= OldSlot ->
-              ordsets:add_element (TSlot, TSlots);
-            _ ->
-              TSlots end end,
-        ordsets:new (), Table)),
-
-      {ok, NewSlot} = PickSlot (TakenSlots, OldSlot),
-
-      Action = {load, Channel, NewSlot},
-      error_logger:info_msg ("Action: set ~p: ~p", [Id, Action]),
-      ets:insert (Table, #action{id=Id, action=Action, special=false}),
-      ok = SaveSlot (NewSlot),
-      ok = db:write (Table, State#state.dir),
-
-      {ok, NewSlot} end,
-
-  {reply, Res, State};
-
-handle_call ({set_raw, Id, Action, Special}, _From, State) ->
+handle_call ({set, Id, Action, Special}, _From, State) ->
   Table = State#state.table,
 
   error_logger:info_msg ("Action: set ~p: ~p", [Id, Action]),
@@ -152,7 +106,18 @@ handle_call ({set_raw, Id, Action, Special}, _From, State) ->
   ets:insert (Table, #action{id=Id, action=Action, special=Special}),
   ok = db:write (Table, State#state.dir),
 
-  {reply, ok, State}.
+  {reply, ok, State};
+
+handle_call ({taken_slots, Channel}, _From, #state{table=Table} = State) ->
+  TakenSlots = ets:foldl (fun (Entry, TSlots) ->
+      case Entry of
+        #action{action={load, Channel, TSlot}} ->
+          ordsets:add_element (TSlot, TSlots);
+        _ ->
+          TSlots end end,
+    ordsets:new (), Table),
+
+  {reply, {ok, TakenSlots}, State}.
 
 
 handle_cast (_Request, State) ->

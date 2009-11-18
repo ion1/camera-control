@@ -151,6 +151,6 @@ save (ActionId, #state{active_channel=Channel} = _State) ->
       error_logger:info_msg ("Not saving, action is special"),
       {error, action_is_special};
     _ ->
-      channel:save (Channel, ActionId) end.
+      db_channel_transactions:save (Channel, ActionId) end.
 
 % vim:set et sw=2 sts=2:

@@ -26,20 +26,20 @@
           handle_info/3, code_change/4]).
 
 %% State
--record (state, {id, channel_num}).
+-record (state, {channel_num}).
 
 
 %% API
 
 start_link (Id, ChannelNum) ->
-  gen_fsm:start_link ({local, Id}, ?MODULE, {Id, ChannelNum}, []).
+  gen_fsm:start_link ({local, Id}, ?MODULE, ChannelNum, []).
 
 
 %% gen_fsm callbacks
 
-init ({Id, ChannelNum}) ->
+init (ChannelNum) ->
   process_flag (trap_exit, true),
-  {ok, idle, #state{id=Id, channel_num=ChannelNum}}.
+  {ok, idle, #state{channel_num=ChannelNum}}.
 
 terminate (_Reason, _StateName, _StateData) ->
   ok.
@@ -52,21 +52,15 @@ idle (activate, _From, State) ->
 idle ({ptz, _Direction}, _From, State) ->
   {reply, ok, idle, State};
 
-idle ({free, _Slot}, _From, State) ->
-  {reply, ok, idle, State};
-
 idle ({load, _Slot}, _From, State) ->
   ok = control_board:select_video (State#state.channel_num),
   {reply, ok, idle, State};
 
-idle ({save, ActionId}, _From, #state{id=Id} = State) ->
-  FreeSlot = fun (_Slot) -> ok end,
-  PickSlot = fun (_TakenSlots, _FreedSlot) -> {ok, dummy} end,
-  SaveSlot = fun (_Slot) -> ok end,
+idle ({free, _Slot}, _From, State) ->
+  {reply, ok, idle, State};
 
-  {ok, Slot} = db_actions:set (ActionId, Id, FreeSlot, PickSlot, SaveSlot),
-
-  {reply, {ok, Slot}, idle, State}.
+idle ({save, _TakenSlotsPromise}, _From, State) ->
+  {reply, {ok, dummy}, idle, State}.
 
 
 handle_event (_Event, StateName, StateData) ->

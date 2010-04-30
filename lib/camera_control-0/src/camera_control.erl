@@ -116,20 +116,7 @@ code_change (_OldVsn, State, _Extra) ->
 activate_slot (Channel, Slot, State) ->
   ok = channel:load (Channel, Slot),
   ok = channel:activate (Channel),
-
-  % Tell the previous camera to go to idle position.
-  case State#state.active_channel of
-    OldChannel when is_atom (OldChannel) andalso OldChannel =/= Channel ->
-      Id = "idle-" ++ atom_to_list (OldChannel),
-
-      case db_actions:lookup (Id) of
-        {ok, {load, OldChannel, IdleSlot}} ->
-          ok = channel:load (OldChannel, IdleSlot);
-        _ ->
-          void end;
-
-    _ ->
-      void end,
+  old_channel_load_idle_position (State#state.active_channel, Channel),
 
   {ok, State#state{active_channel=Channel}}.
 
@@ -141,7 +128,10 @@ activate_channel (ChannelNum, State) ->
     ChannelNum < ChannelsLength ->
       {Channel, _, _} = lists:nth (ChannelNum+1, Channels),
       ok = channel:activate (Channel),
+      old_channel_load_idle_position (State#state.active_channel, Channel),
+
       {ok, State#state{active_channel=Channel}};
+
     ChannelNum >= ChannelsLength ->
       {error, no_such_channel} end.
 
@@ -152,5 +142,22 @@ save (ActionId, #state{active_channel=Channel} = _State) ->
       {error, action_is_special};
     _ ->
       db_channel_transactions:save (Channel, ActionId) end.
+
+% Tell the previous camera to go to idle position.
+old_channel_load_idle_position (OldChannel, NewChannel) ->
+  case is_atom (OldChannel) andalso OldChannel =/= NewChannel of
+    true ->
+      Id = "idle-" ++ atom_to_list (OldChannel),
+
+      case db_actions:lookup (Id) of
+        {ok, {load, OldChannel, IdleSlot}} ->
+          ok = channel:load (OldChannel, IdleSlot);
+        _ ->
+          void end;
+
+    false ->
+      void end,
+
+    ok.
 
 % vim:set et sw=2 sts=2:

@@ -90,6 +90,8 @@ code_change (_OldVsn, State, _Extra) ->
 % simultaneously.
 read_input (State) ->
   <<XBits:16/bits, YBits:16/bits>> = read_raw_input (State),
+  %<<XN:16>> = XBits, <<YN:16>> = YBits,
+  %error_logger:info_msg ("Got bits: Y ~16.2.0B X ~16.2.0B~n", [YN, XN]),
   {ok, match_axis (YBits, XBits)}.
 
 read_raw_input (State) ->
